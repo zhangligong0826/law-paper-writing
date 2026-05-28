@@ -1,21 +1,18 @@
 ---
 name: law-paper-writing
-version: 1.0.0
+version: 1.1.0
 author: TBD
 license: MIT
-tags: [法学写作, Legal Writing, CSSCI, SSCI, 学位论文, 论文润色, 去AI味, 法律文献, 法学]
+tags: [法学写作, Legal Writing, CSSCI, SSCI, 学位论文, 论文润色, 去AI味, 法律文献, 法学, Word论文]
 allowed-tools: [Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash]
 display_name: 法学论文写作
 display_name_en: Law Paper Writing
-description_zh: >
-  面向法学博士/研究生的论文写作全流程 Skill。覆盖选题、文献综述、案例引用规范（GB/T 7714/Bluebook）、
-  CSSCI/SSCI 期刊投稿、学位论文格式、中文学术表达润色、去AI痕迹。
-  触发词：法学论文写作、论文润色、去AI味、法律文献综述、CSSCI投稿、SSCI投稿、学位论文、法学论文、legal writing。
+description: >
+  面向法学博士/硕士研究生的论文写作全流程 Skill。覆盖选题、文献综述、案例引用规范（GB/T 7714/Bluebook）、
+  CSSCI/SSCI 期刊投稿、学位论文格式、中文学术表达润色、去AI痕迹、审稿人模拟、Word 文档生成。
+  触发词：法学论文写作、法律写作、CSSCI投稿、SSCI投稿、学位论文、法律文献综述、案例引用、
+  论文润色、去AI味、法学论文、legal writing、law paper、dissertation、民法论文、刑法论文、行政法论文。
   不做：法律咨询、案例分析代理、文书起草（诉状/合同）、司法考试辅导。
-description_en: >
-  Full-cycle academic writing skill for JSD/SJD law doctoral students. Covers topic selection,
-  literature review, case citation standards (GB/T 7714/Bluebook), CSSCI/SSCI journal submission,
-  dissertation formatting, Chinese academic expression polishing, and de-AI-ification.
 ---
 
 # 法学论文写作 Skill
@@ -397,7 +394,70 @@ AI 生成的中文学术论文有 26 种常见痕迹模式，分布在 5 个层�
 
 ---
 
-## 十、参考资源
+## 十、审稿人视角审视
+
+### 10.1 模拟 CSSCI 匿名审稿人
+
+当用户要求「审稿人视角审视」「模拟审稿」「审稿意见」时，进入此模式。角色：一位 CSSCI 法学核心期刊的匿名审稿人，学术严谨但不刻薄。
+
+### 10.2 审稿评估维度（8 项）
+
+| 维度 | 权重 | 评估标准 |
+|------|------|---------|
+| **选题价值** | 20% | 问题意识是否鲜明？是否回应真实法律困境？理论空间是否充分？ |
+| **创新性** | 15% | 相较既有文献是否有实质推进？新视角/新材料/新方法？ |
+| **论证深度** | 20% | 论证是否有层次？是否停留在表面？法律分析方法运用是否得当？ |
+| **文献覆盖** | 10% | 是否遗漏重要文献？近 5 年核心文献是否覆盖？外文文献是否适当？ |
+| **案例运用** | 10% | 案例引用是否准确？是否支撑论点？是否有案例堆砌无分析？ |
+| **逻辑结构** | 10% | 各章节是否有清晰逻辑递进？段落过渡是否自然？ |
+| **引用规范** | 10% | 引注格式是否统一？法条/案例/文献引用是否准确？ |
+| **语言表达** | 5% | 是否有病句/错别字？学术表达是否规范？是否有 AI 痕迹？ |
+
+### 10.3 审稿意见输出格式
+
+```
+## 审稿意见
+
+**总体评价：** 建议录用 / 小修后录用 / 大修后重审 / 退稿
+
+**一、主要优点（1-3 点）**
+1. [具体指出做得好的地方]
+
+**二、核心问题（1-3 点，按严重程度排序）**
+1. [具体指出论证/文献/方法等方面的不足，附具体段落位置和建议]
+
+**三、修改建议（逐条，可操作）**
+- [ ] 建议1：[具体建议]
+- [ ] 建议2：[具体建议]
+- [ ] 建议3：[具体建议]
+
+**四、具体修改（可选，附示范文本）**
+如有需要，可提供具体的修改示范文本供作者参考。
+
+**五、次要问题（格式/语言）**
+- 第X页第Y行：[具体问题]
+- 引注格式问题：[具体说明]
+
+**审稿人注：** 以上意见基于 CSSCI 法学核心期刊的常规审稿标准，仅供作者参考。
+```
+
+### 10.4 审稿人视角审视的触发条件
+
+- 用户说「帮我审一下」「审稿人视角」「模拟审稿」「审稿意见」
+- 用户说「这篇文章能投XX期刊吗？」
+- 投稿前的最终审查阶段（checklists.md 完成后）
+
+### 10.5 注意事项
+
+- 审稿意见应当**具体到段落位置**，不能只说「论证不够深入」而不指出哪里不够深入
+- 审稿意见应当**可操作**，每条问题都要附修改建议
+- 模拟审稿不等于真实审稿，最终以期刊实际审稿意见为准
+- 如果论文质量明显不够 CSSCI 标准，应诚实指出，不要虚假鼓励
+- 如果论文有明显的 AI 写作痕迹，应在「次要问题」中指出
+
+---
+
+## 十一、参考资源
 
 ### 本 Skill 内部参考文档
 
@@ -407,6 +467,12 @@ AI 生成的中文学术论文有 26 种常见痕迹模式，分布在 5 个层�
 | `references/citation-workflow.md` | 引用规范详解（法条/案例/学术文献/英文文献/工具推荐） | 核对引用格式时 |
 | `references/checklists.md` | CSSCI/SSCI 投稿清单、学位论文答辩前检查清单 | 投稿前/答辩前的最终检查 |
 | `references/de-ai-patterns.md` | 法学 AI 写作痕迹完整清单（26 种模式 + 改写技术） | 去 AI 味操作时 |
+| `references/docx-workflow.md` | Word 文档工作流（格式规范、python-docx 模板、排版检查） | 生成 Word 格式投稿文档时 |
+| `references/subdomain-templates.md` | 法学分支领域专项模板（民法/刑法/行政法/国际法/经济法/法理学） | 特定法学分支写作时 |
+| `references/verification-guide.md` | 法律核查工具集成（法条/案例/文献核实流程 + WebFetch 模板） | 核实法条、案例、文献真伪时 |
+| `references/citation-converter.py` | 引用格式转换脚本（GB/T 7714 ↔ Bluebook 批量转换） | 需要切换引注格式时 |
+| `references/english-writing-guide.md` | 英文法学论文写作指南（SSCI 投稿、IRAC/CREAC、去 AI 味） | 写英文法学论文或投 SSCI 时 |
+| `references/journal-selector.md` | 期刊对比决策矩阵（选刊流程、各刊选题偏好、投稿策略） | 选择投稿目标期刊时 |
 
 ### 外部资源
 
@@ -428,6 +494,12 @@ AI 生成的中文学术论文有 26 种常见痕迹模式，分布在 5 个层�
 - 学位论文答辩前的最终检查
 - 去 AI 写作痕迹
 - 期刊投稿规范查询
+- 生成符合 CSSCI 格式的 Word 文档
+- 选择投稿目标期刊
+- 模拟审稿人审视论文
+- 核实法条/案例/文献的真伪
+- 引用格式批量转换（GB/T 7714 ↔ Bluebook）
+- 英文法学论文写作（SSCI 投稿）
 
 **不适用场景：**
 - 具体法律问题的咨询（建议咨询执业律师）
