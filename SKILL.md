@@ -1,15 +1,15 @@
 ---
 name: law-paper-writing
-version: 1.1.0
-author: TBD
+version: 1.2.0
+author: zhangligong0826
 license: MIT
 tags: [法学写作, Legal Writing, CSSCI, SSCI, 学位论文, 论文润色, 去AI味, 法律文献, 法学, Word论文]
 allowed-tools: [Read, Write, Edit, Grep, Glob, AskUserQuestion, Bash]
 display_name: 法学论文写作
 display_name_en: Law Paper Writing
 description: >
-  面向法学博士/硕士研究生的论文写作全流程 Skill。覆盖选题、文献综述、案例引用规范（GB/T 7714/Bluebook）、
-  CSSCI/SSCI 期刊投稿、学位论文格式、中文学术表达润色、去AI痕迹、审稿人模拟、Word 文档生成。
+  面向法学博士/硕士研究生的 AI 论文写作与引用核查 Skill。覆盖选题、文献综述、案例引用规范（GB/T 7714/Bluebook）、
+  CSSCI/SSCI 期刊投稿、学位论文格式、中文学术表达润色、去AI痕迹、审稿人模拟、Word 文档生成和法学写作 Prompt 工作流。
   触发词：法学论文写作、法律写作、CSSCI投稿、SSCI投稿、学位论文、法律文献综述、案例引用、
   论文润色、去AI味、法学论文、legal writing、law paper、dissertation、民法论文、刑法论文、行政法论文。
   不做：法律咨询、案例分析代理、文书起草（诉状/合同）、司法考试辅导。
@@ -17,7 +17,7 @@ description: >
 
 # 法学论文写作 Skill
 
-面向法学博士生和法学研究者的全流程学术写作辅助工具。整合论文写作指导、文献引用规范、期刊投稿标准和去 AI 痕迹检测于一体。
+面向法学硕士、博士和法学研究者的全流程学术写作辅助工具。整合论文写作指导、文献引用规范、法律材料核查、期刊投稿标准、去 AI 痕迹检测和可复制 Prompt 工作流于一体。
 
 **反范围（不做的事）：**
 - 不做法律咨询（"我这种情况应该怎么办？"→建议咨询执业律师）
@@ -470,7 +470,7 @@ AI 生成的中文学术论文有 26 种常见痕迹模式，分布在 5 个层�
 | `references/docx-workflow.md` | Word 文档工作流（格式规范、python-docx 模板、排版检查） | 生成 Word 格式投稿文档时 |
 | `references/subdomain-templates.md` | 法学分支领域专项模板（民法/刑法/行政法/国际法/经济法/法理学） | 特定法学分支写作时 |
 | `references/verification-guide.md` | 法律核查工具集成（法条/案例/文献核实流程 + WebFetch 模板） | 核实法条、案例、文献真伪时 |
-| `references/citation-converter.py` | 引用格式转换脚本（GB/T 7714 ↔ Bluebook 批量转换） | 需要切换引注格式时 |
+| `references/citation-converter.py` | 引用格式辅助转换脚本（GB/T 7714 ↔ Bluebook 草案转换，必须人工核对） | 需要初步切换引注格式时 |
 | `references/english-writing-guide.md` | 英文法学论文写作指南（SSCI 投稿、IRAC/CREAC、去 AI 味） | 写英文法学论文或投 SSCI 时 |
 | `references/journal-selector.md` | 期刊对比决策矩阵（选刊流程、各刊选题偏好、投稿策略） | 选择投稿目标期刊时 |
 
@@ -498,7 +498,7 @@ AI 生成的中文学术论文有 26 种常见痕迹模式，分布在 5 个层�
 - 选择投稿目标期刊
 - 模拟审稿人审视论文
 - 核实法条/案例/文献的真伪
-- 引用格式批量转换（GB/T 7714 ↔ Bluebook）
+- 引用格式辅助转换（GB/T 7714 ↔ Bluebook 草案转换，投稿前必须人工核对）
 - 英文法学论文写作（SSCI 投稿）
 
 **不适用场景：**

@@ -1,233 +1,266 @@
 #!/usr/bin/env python3
 """
-法学论文引用格式转换器
-GB/T 7714 ↔ Bluebook 双向转换
+法学论文引用格式辅助转换器
+GB/T 7714 ↔ Bluebook 草案转换
 
 用法:
   python citation-converter.py --input input.txt --from gbt7714 --to bluebook --output output.txt
   python citation-converter.py --input input.txt --from bluebook --to gbt7714 --output output.txt
 
-输入文件格式: 每行一条引用记录
+说明:
+  本脚本用于初稿整理和格式迁移，不替代人工核对。正式投稿前必须按目标期刊、
+  学校模板或 Bluebook 原文规则逐条确认作者、题名、卷期、页码和缩写。
 """
 
-import re
 import argparse
+import re
 import sys
 
 
 # ============ GB/T 7714 → Bluebook ============
 
 def gbt7714_to_bluebook(text):
-    """将 GB/T 7714 格式的引用转换为 Bluebook 格式"""
+    """将 GB/T 7714 引用逐行转换为 Bluebook 草案格式。"""
+    return _convert_lines(text, _gbt7714_line_to_bluebook)
 
-    # 1. 期刊论文转换
-    # [序号] 作者. 论文标题[J]. 期刊名称, 年份, 卷(期): 起止页码.
+
+def _gbt7714_line_to_bluebook(line):
+    stripped = line.strip()
+    if not stripped:
+        return line
+
+    for converter in (
+        _gbt7714_journal_to_bluebook,
+        _gbt7714_book_to_bluebook,
+        _gbt7714_chapter_to_bluebook,
+    ):
+        converted = converter(stripped)
+        if converted is not None:
+            return converted
+
+    return line
+
+
+def _gbt7714_journal_to_bluebook(line):
+    # 常见格式:
+    # [1] 作者. 论文标题[J]. 期刊, 2014(5): 32-45.
+    # [2] 作者. 论文标题[J]. 期刊, 2022, 44(3): 12-30.
+    # [3] 作者. 论文标题[J]. 期刊, 2021: 5-18.
     journal_pattern = re.compile(
-        r'\[(\d+)\]\s*'                              # [序号]
-        r'(.+?)\.\s*'                                 # 作者
-        r'(.+?)\[J\]\.\s*'                            # 标题[J]
-        r'(.+?),\s*'                                  # 期刊名
-        r'(\d{4})'                                     # 年份
-        r'(?:\s*,\s*(\d+)\(([^)]+)\))?'                # 卷(期) 可选
-        r'(?:\s*:\s*(\d+)(?:-(\d+))?)?'                # 起止页码 可选
-        r'\s*\.?\s*$'                                  # 结尾
+        r'^\[(?P<num>\d+)\]\s*'
+        r'(?P<author>.+?)\.\s*'
+        r'(?P<title>.+?)\[J\]\.\s*'
+        r'(?P<journal>.+?),\s*'
+        r'(?P<year>\d{4})'
+        r'(?:\s*,\s*(?P<volume>\d+)(?:\((?P<issue>[^)]+)\))?)?'
+        r'(?:\s*\((?P<issue_only>[^)]+)\))?'
+        r'(?:\s*:\s*(?P<start_page>\d+)(?:[-–](?P<end_page>\d+))?)?'
+        r'\s*\.?$'
     )
+    match = journal_pattern.fullmatch(line)
+    if not match:
+        return None
 
-    def journal_repl(m):
-        num = m.group(1)
-        author = format_author_bluebook(m.group(2))
-        title = m.group(3).strip()
-        journal_cn = m.group(4).strip()
-        year = m.group(5)
-        volume = m.group(6) or ''
-        issue = m.group(7) or ''
-        start_page = m.group(8) or ''
-        end_page = m.group(9) or ''
+    author = format_author_bluebook(match.group('author'))
+    title = match.group('title').strip()
+    journal_cn = match.group('journal').strip()
+    year = match.group('year')
+    volume = match.group('volume') or ''
+    start_page = match.group('start_page') or ''
+    end_page = match.group('end_page') or ''
 
-        journal_en = translate_journal_name(journal_cn)
-        journal_abbr = abbreviate_journal(journal_en)
+    journal_abbr = abbreviate_journal(translate_journal_name(journal_cn))
 
-        result = f"{author}, {title}, "
-        if volume:
-            result += f"{volume} "
-        result += f"{journal_abbr} "
-        if start_page:
-            result += f"{start_page} "
-            if end_page:
-                result += f"-{end_page} "
-        result += f"({year})."
-        return f"{num}. {result}"
+    parts = [f"{match.group('num')}. {author}, {title},"]
+    if volume:
+        parts.append(volume)
+    parts.append(journal_abbr)
+    if start_page:
+        page_text = start_page
+        if end_page:
+            page_text += f"-{end_page}"
+        parts.append(page_text)
+    parts.append(f"({year}).")
+    return " ".join(parts)
 
-    text = journal_pattern.sub(journal_repl, text)
 
-    # 2. 专著转换
+def _gbt7714_book_to_bluebook(line):
     # [序号] 作者. 书名[M]. 出版地: 出版社, 年份: 引用页码.
     book_pattern = re.compile(
-        r'\[(\d+)\]\s*'
-        r'(.+?)\.\s*'
-        r'(.+?)\[M\]\.\s*'
-        r'(.+?)\s*:\s*(.+?),\s*'
-        r'(\d{4})'
-        r'(?:\s*:\s*(\d+))?'
-        r'\s*\.?\s*$'
+        r'^\[(?P<num>\d+)\]\s*'
+        r'(?P<author>.+?)\.\s*'
+        r'(?P<title>.+?)\[M\]\.\s*'
+        r'(?P<place>.+?)\s*:\s*(?P<publisher>.+?),\s*'
+        r'(?P<year>\d{4})'
+        r'(?:\s*:\s*(?P<page>\d+))?'
+        r'\s*\.?$'
     )
+    match = book_pattern.fullmatch(line)
+    if not match:
+        return None
 
-    def book_repl(m):
-        num = m.group(1)
-        author = format_author_bluebook(m.group(2))
-        title = m.group(3).strip()
-        publisher = m.group(5).strip()
-        year = m.group(6)
-        page = m.group(7) or ''
+    author = format_author_bluebook(match.group('author'))
+    title = match.group('title').strip()
+    publisher = match.group('publisher').strip()
+    year = match.group('year')
+    page = match.group('page') or ''
 
-        result = f"{author}, {title} ({publisher} {year} ed."
-        if page:
-            result += f" at {page}"
-        result += ")."
-        return f"{num}. {result}"
+    result = f"{match.group('num')}. {author}, {title} ({publisher} {year} ed.)"
+    if page:
+        result += f" at {page}"
+    return result + "."
 
-    text = book_pattern.sub(book_repl, text)
 
-    # 3. 编著章节转换
+def _gbt7714_chapter_to_bluebook(line):
     # [序号] 作者. 章节标题[A]. 编者. 书名[C]. 出版地: 出版社, 年份: 引用页码.
     chapter_pattern = re.compile(
-        r'\[(\d+)\]\s*'
-        r'(.+?)\.\s*'
-        r'(.+?)\[A\]\.\s*'
-        r'(.+?)\.\s*'
-        r'(.+?)\[C\]\.\s*'
-        r'(.+?)\s*:\s*(.+?),\s*'
-        r'(\d{4})'
-        r'(?:\s*:\s*(\d+))?'
-        r'\s*\.?\s*$'
+        r'^\[(?P<num>\d+)\]\s*'
+        r'(?P<author>.+?)\.\s*'
+        r'(?P<title>.+?)\[A\]\.\s*'
+        r'(?P<editor>.+?)\.\s*'
+        r'(?P<book>.+?)\[C\]\.\s*'
+        r'(?P<place>.+?)\s*:\s*(?P<publisher>.+?),\s*'
+        r'(?P<year>\d{4})'
+        r'(?:\s*:\s*(?P<page>\d+))?'
+        r'\s*\.?$'
     )
+    match = chapter_pattern.fullmatch(line)
+    if not match:
+        return None
 
-    def chapter_repl(m):
-        num = m.group(1)
-        author = format_author_bluebook(m.group(2))
-        title = m.group(3).strip()
-        editor = format_author_bluebook(m.group(4))
-        book = m.group(5).strip()
-        publisher = m.group(7).strip()
-        year = m.group(8)
-        page = m.group(9) or ''
+    author = format_author_bluebook(match.group('author'))
+    title = match.group('title').strip()
+    editor = format_author_bluebook(match.group('editor'))
+    book = match.group('book').strip()
+    publisher = match.group('publisher').strip()
+    year = match.group('year')
+    page = match.group('page') or ''
 
-        result = f"{author}, {title}, in {editor} ed., {book} ({publisher} {year}"
-        if page:
-            result += f") at {page}"
-        else:
-            result += ")"
-        result += "."
-        return f"{num}. {result}"
-
-    text = chapter_pattern.sub(chapter_repl, text)
-
-    return text
+    result = (
+        f"{match.group('num')}. {author}, {title}, in {editor} ed., "
+        f"{book} ({publisher} {year})"
+    )
+    if page:
+        result += f" at {page}"
+    return result + "."
 
 
 # ============ Bluebook → GB/T 7714 ============
 
 def bluebook_to_gbt7714(text):
-    """将 Bluebook 格式的引用转换为 GB/T 7714 格式"""
+    """将 Bluebook 引用逐行转换为 GB/T 7714 草案格式。"""
+    return _convert_lines(text, _bluebook_line_to_gbt7714)
 
-    # 1. 期刊论文转换
-    # Author, Title, Volume Journal Page (Year).
+
+def _bluebook_line_to_gbt7714(line):
+    stripped = line.strip()
+    if not stripped:
+        return line
+
+    for converter in (
+        _bluebook_journal_to_gbt7714,
+        _bluebook_book_to_gbt7714,
+    ):
+        converted = converter(stripped)
+        if converted is not None:
+            return converted
+
+    return line
+
+
+def _bluebook_journal_to_gbt7714(line):
+    # 1. Author, Title, 12 Harv. L. Rev. 34-56 (2020).
     bj_pattern = re.compile(
-        r'(\d+)\.\s*'
-        r'(.+?),\s*'
-        r'(.+?),\s*'
-        r'(\d+)\s+'
-        r'(.+?)\s+'
-        r'(\d+)(?:-(\d+))?\s+'
-        r'\((\d{4})\)\.?\s*$'
+        r'^(?P<num>\d+)\.\s*'
+        r'(?P<author>.+?),\s*'
+        r'(?P<title>.+?),\s*'
+        r'(?P<volume>\d+)\s+'
+        r'(?P<journal>.+?)\s+'
+        r'(?P<start_page>\d+)(?:-(?P<end_page>\d+))?\s+'
+        r'\((?P<year>\d{4})\)\.?\s*$'
     )
+    match = bj_pattern.fullmatch(line)
+    if not match:
+        return None
 
-    def bj_repl(m):
-        num = m.group(1)
-        author = m.group(2).strip()
-        title = m.group(3).strip().rstrip(',')
-        volume = m.group(4)
-        journal_abbr = m.group(5).strip()
-        start_page = m.group(6)
-        end_page = m.group(7) or ''
-        year = m.group(8)
+    journal_cn = reverse_translate_journal(match.group('journal'))
+    result = (
+        f"[{match.group('num')}] {match.group('author').strip()}. "
+        f"{match.group('title').strip()}[J]. {journal_cn}, {match.group('year')}, "
+        f"{match.group('volume')}: {match.group('start_page')}"
+    )
+    if match.group('end_page'):
+        result += f"-{match.group('end_page')}"
+    return result + "."
 
-        journal_cn = reverse_translate_journal(journal_abbr)
 
-        result = f"[{num}] {author}. {title}[J]. {journal_cn}, {year}"
-        result += f", {volume}"
-        if start_page:
-            result += f": {start_page}"
-            if end_page:
-                result += f"-{end_page}"
-        result += "."
-
-        return result
-
-    text = bj_pattern.sub(bj_repl, text)
-
-    # 2. 专著转换
-    # Author, Title (Publisher Year ed.) at Page.
-    bb_book_pattern = re.compile(
-        r'(\d+)\.\s*'
-        r'(.+?),\s*'
-        r'(.+?)\s+'
-        r'\((.+?)\s+(\d{4})\s*ed\.\)'
-        r'(?:\s+at\s+(\d+))?'
+def _bluebook_book_to_gbt7714(line):
+    # 1. Author, Title (Publisher 2020 ed.) at 12.
+    book_pattern = re.compile(
+        r'^(?P<num>\d+)\.\s*'
+        r'(?P<author>.+?),\s*'
+        r'(?P<title>.+?)\s+'
+        r'\((?P<publisher>.+?)\s+(?P<year>\d{4})\s*ed\.\)'
+        r'(?:\s+at\s+(?P<page>\d+))?'
         r'\.?\s*$'
     )
+    match = book_pattern.fullmatch(line)
+    if not match:
+        return None
 
-    def bb_book_repl(m):
-        num = m.group(1)
-        author = m.group(2).strip()
-        title = m.group(3).strip().rstrip(',')
-        publisher = m.group(4).strip()
-        year = m.group(5)
-        page = m.group(6) or ''
-
-        result = f"[{num}] {author}. {title}[M]. 北京: {publisher}, {year}"
-        if page:
-            result += f": {page}"
-        result += "."
-
-        return result
-
-    text = bb_book_pattern.sub(bb_book_repl, text)
-
-    return text
+    result = (
+        f"[{match.group('num')}] {match.group('author').strip()}. "
+        f"{match.group('title').strip()}[M]. 出版地待核: "
+        f"{match.group('publisher').strip()}, {match.group('year')}"
+    )
+    if match.group('page'):
+        result += f": {match.group('page')}"
+    return result + "."
 
 
 # ============ 辅助函数 ============
 
+def _convert_lines(text, converter):
+    converted_lines = []
+    for line in text.splitlines(keepends=True):
+        newline = ''
+        body = line
+        if line.endswith('\r\n'):
+            body = line[:-2]
+            newline = '\r\n'
+        elif line.endswith('\n'):
+            body = line[:-1]
+            newline = '\n'
+        converted_lines.append(converter(body) + newline)
+    if not converted_lines and text == '':
+        return ''
+    return ''.join(converted_lines) if converted_lines else converter(text)
+
+
 def format_author_bluebook(author_str):
     """
-    将中文作者格式转为 Bluebook 格式。
-    中文: 张三, 李四, 王五
-    Bluebook: Zhang San, Li Si & Wang Wu
+    将作者列表转为 Bluebook 草案格式。
+    中文作者暂不自动转拼音，避免错误音译；正式投稿前应人工确认。
     """
     authors = [a.strip() for a in author_str.replace('，', ',').split(',') if a.strip()]
 
-    # 处理"等"/"et al."
     if authors and authors[-1].strip() in ['等', 'et al.', 'et al']:
         authors = authors[:-1]
 
-    # 处理译者标注
     authors = [a.split('译')[0].split('，译')[0].strip() for a in authors]
 
-    # 中文人名转拼音（简化版：直接保留原样，实际应用中可接 pypinyin）
     bluebook_authors = []
-    for i, a in enumerate(authors):
-        if not a:
+    for i, author in enumerate(authors):
+        if not author:
             continue
         if i == len(authors) - 1 and len(authors) > 1:
-            bluebook_authors.append(f"& {a}")
+            bluebook_authors.append(f"& {author}")
         else:
-            bluebook_authors.append(a)
+            bluebook_authors.append(author)
 
     return ', '.join(bluebook_authors)
 
 
-# 常见中文法学期刊 → 英文 → Bluebook 缩写
 JOURNAL_TRANSLATIONS = {
     '法学研究': 'Chinese Journal of Law',
     '中国法学': 'China Legal Science',
@@ -256,7 +289,6 @@ JOURNAL_ABBREVIATIONS = {
     'Tsinghua Law Review': 'Tsinghua L. Rev.',
     'Journal of Political Science and Law': 'J. Pol. Sci. & L.',
     'Global Law Review': 'Global L. Rev.',
-    # Common English law journals
     'Harvard Law Review': 'Harv. L. Rev.',
     'Yale Law Journal': 'Yale L.J.',
     'Columbia Law Review': 'Colum. L. Rev.',
@@ -269,25 +301,27 @@ JOURNAL_ABBREVIATIONS = {
 
 
 def translate_journal_name(cn_name):
-    """中文期刊名 → 英文名"""
+    """中文期刊名 → 英文名。未收录时保留原名，交由人工核对。"""
     return JOURNAL_TRANSLATIONS.get(cn_name.strip(), cn_name.strip())
 
 
 def abbreviate_journal(en_name):
-    """英文期刊名 → Bluebook 缩写"""
+    """英文期刊名 → Bluebook 缩写草案。未收录时保留原名。"""
     return JOURNAL_ABBREVIATIONS.get(en_name.strip(), en_name.strip())
 
 
 def reverse_translate_journal(abbr):
-    """Bluebook 缩写 → 中文名"""
-    reverse = {v: k for k, v in JOURNAL_ABBREVIATIONS.items()}
-    return reverse.get(abbr.strip(), abbr.strip())
+    """Bluebook 缩写 → 中文期刊名草案。未收录时保留原缩写。"""
+    english_by_abbr = {v: k for k, v in JOURNAL_ABBREVIATIONS.items()}
+    english_name = english_by_abbr.get(abbr.strip(), abbr.strip())
+    chinese_by_english = {v: k for k, v in JOURNAL_TRANSLATIONS.items()}
+    return chinese_by_english.get(english_name, english_name)
 
 
 # ============ 主程序 ============
 
 def convert_file(input_path, source_fmt, target_fmt, output_path):
-    """转换文件中的引用格式"""
+    """转换文件中的引用格式。"""
     with open(input_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
@@ -304,11 +338,12 @@ def convert_file(input_path, source_fmt, target_fmt, output_path):
         f.write(result)
 
     print(f"转换完成: {input_path} ({source_fmt}) → {output_path} ({target_fmt})")
+    print("提示: 转换结果仅供初稿整理，投稿前必须逐条人工核对。")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='法学论文引用格式转换器 (GB/T 7714 ↔ Bluebook)',
+        description='法学论文引用格式辅助转换器 (GB/T 7714 ↔ Bluebook)',
         epilog='示例: python citation-converter.py --input refs.txt --from gbt7714 --to bluebook --output refs_bb.txt'
     )
     parser.add_argument('--input', '-i', required=True, help='输入文件路径')
@@ -324,18 +359,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-"""
-=== 测试示例 ===
-
-输入 (GB/T 7714):
-[1] 王利明. 论民法典的时代特征与编纂步骤[J]. 中国法学, 2014(5): 32-45.
-[2] 王泽鉴. 民法学说与判例研究(第一册)[M]. 北京: 北京大学出版社, 2009: 56.
-[3] 张新宝. 侵权责任构成要件[A]. 王利明. 民法典侵权责任编研究[C]. 北京: 中国人民大学出版社, 2016: 89.
-
-输出 (Bluebook):
-1. 王利明, 论民法典的时代特征与编纂步骤, China Legal Sci. 32-45 (2014).
-2. 王泽鉴, 民法学说与判例研究(第一册) (北京大学出版社 2009 ed.) at 56).
-3. 张新宝, 侵权责任构成要件, in 王利明 ed., 民法典侵权责任编研究 (中国人民大学出版社 2016) at 89).
-"""
